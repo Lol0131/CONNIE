@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, request, send_from_directory
 from flask_cors import CORS
 
-from connie import gemini, jev, rules
+from connie import gemini, jev, rules, snow
 from connie.seed import SEED_HISTORY
 
 load_dotenv()
@@ -27,10 +27,16 @@ STOPWORDS = set("a an and the i my me did do does when what how much many is am 
 app = Flask(__name__)
 CORS(app)
 
-# TODO(snowflake): read/write CONNIE.APP.USER_CONNIE_SETTINGS instead.
+# Settings are cached here and written through to Snowflake when it's configured.
 settings = {"dataSharing": "medium", "spending": "medium", "toolAssertiveness": "low"}
-# TODO(snowflake): INSERT into CONNIE.APP.INTERACTIONS instead.
+# Used only when Snowflake isn't configured (or is unreachable).
 history = list(SEED_HISTORY)
+
+if snow.enabled():
+    try:
+        settings.update(snow.load_settings() or {})
+    except Exception as e:
+        app.logger.warning("Couldn't load settings from Snowflake: %s", e)
 
 
 def now_iso() -> str:
@@ -90,19 +96,21 @@ def log():
         "summary": body.get("summary", ""),
         "verdict": body.get("verdict", ""),
     }
+    if snow.enabled():
+        try:
+            snow.log(entry)
+            return jsonify(ok=True, stored="snowflake")
+        except Exception as e:
+            app.logger.warning("Snowflake log failed, keeping it in memory: %s", e)
     history.append(entry)
-    return jsonify(ok=True)
+    return jsonify(ok=True, stored="memory")
 
 
-@app.get("/search")
-def search():
-    q = request.args.get("q", "").strip().lower()
-    # TODO(snowflake): query the CONNIE_HISTORY_SEARCH Cortex Search service
-    # (REST: POST /api/v2/databases/CONNIE/schemas/APP/cortex-search-services/CONNIE_HISTORY_SEARCH:query).
-    # Stub: rank by how many meaningful query words appear in the entry.
-    words = [w for w in re.findall(r"[a-z0-9$]+", q) if w not in STOPWORDS]
+def local_search(q: str, limit: int = 20) -> list[dict]:
+    """Keyword ranking over the in-memory history, for when Snowflake is off."""
+    words = [w for w in re.findall(r"[a-z0-9$]+", q.lower()) if w not in STOPWORDS]
     if not words:
-        return jsonify(sorted(history, key=lambda h: h["time"], reverse=True)[:20])
+        return sorted(history, key=lambda h: h["time"], reverse=True)[:limit]
     scored = []
     for h in history:
         text = f"{h['summary']} {h['type']} {h['verdict']}".lower()
@@ -110,7 +118,37 @@ def search():
         if score:
             scored.append((score, h["time"], h))
     scored.sort(key=lambda s: (s[0], s[1]), reverse=True)
-    return jsonify([h for _, _, h in scored[:20]])
+    return [h for _, _, h in scored[:limit]]
+
+
+@app.get("/search")
+def search():
+    q = request.args.get("q", "").strip()
+    if snow.enabled():
+        try:
+            return jsonify(snow.search(q) if q else snow.recent())
+        except Exception as e:
+            app.logger.warning("Snowflake search failed, using local history: %s", e)
+    return jsonify(local_search(q))
+
+
+@app.get("/ask")
+def ask():
+    """Ask your history: Cortex Search retrieves, Cortex COMPLETE answers."""
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify(error="q is required"), 400
+    if snow.enabled():
+        try:
+            sources = snow.search(q, limit=6)
+            return jsonify(answer=snow.answer(q, sources), sources=sources, engine="cortex")
+        except Exception as e:
+            app.logger.warning("Cortex ask failed, using local history: %s", e)
+    sources = local_search(q, limit=6)
+    n = len(sources)
+    answer = (f"I found {n} entr{'y' if n == 1 else 'ies'} in your history that match. "
+              "Here they are!" if n else "I couldn't find anything about that in your history.")
+    return jsonify(answer=answer, sources=sources, engine="local")
 
 
 @app.get("/settings")
@@ -126,6 +164,11 @@ def post_settings():
     if bad:
         return jsonify(error=f"invalid level for: {', '.join(bad)}"), 400
     settings.update(updates)
+    if snow.enabled():
+        try:
+            snow.save_settings(settings)
+        except Exception as e:
+            app.logger.warning("Couldn't save settings to Snowflake: %s", e)
     return jsonify(ok=True)
 
 

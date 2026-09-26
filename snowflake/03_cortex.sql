@@ -9,7 +9,9 @@ CREATE OR REPLACE CORTEX SEARCH SERVICE CONNIE_HISTORY_SEARCH
   WAREHOUSE = CONNIE_WH
   TARGET_LAG = '1 minute'
   AS (
-    SELECT summary, user_id, type, verdict, created_at
+    SELECT summary, user_id, type, verdict,
+           -- ISO string so the REST response is ready for the frontend
+           TO_VARCHAR(CONVERT_TIMEZONE('UTC', created_at), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS logged_at
     FROM INTERACTIONS
   );
 
@@ -19,7 +21,7 @@ SELECT PARSE_JSON(
     'CONNIE.APP.CONNIE_HISTORY_SEARCH',
     '{
        "query": "when did I share my home address?",
-       "columns": ["summary", "type", "verdict", "created_at"],
+       "columns": ["summary", "type", "verdict", "logged_at"],
        "filter": {"@eq": {"user_id": "demo"}},
        "limit": 5
      }'
@@ -29,7 +31,7 @@ SELECT PARSE_JSON(
 -- 3. The same query over REST (what backend/app.py /search calls):
 --   POST https://<account>.snowflakecomputing.com/api/v2/databases/CONNIE/schemas/APP/cortex-search-services/CONNIE_HISTORY_SEARCH:query
 --   Authorization: Bearer <PAT or JWT>
---   { "query": "...", "columns": ["summary","type","verdict","created_at"],
+--   { "query": "...", "columns": ["summary","type","verdict","logged_at"],
 --     "filter": {"@eq": {"user_id": "demo"}}, "limit": 5 }
 
 -- 4. Optional: have a Cortex LLM answer in one sentence using the search results (the "G" in RAG).
@@ -38,7 +40,7 @@ WITH hits AS (
   SELECT PARSE_JSON(
     SNOWFLAKE.CORTEX.SEARCH_PREVIEW(
       'CONNIE.APP.CONNIE_HISTORY_SEARCH',
-      '{"query": "how much am I spending on AI?", "columns": ["summary","created_at"], "limit": 5}'
+      '{"query": "how much am I spending on AI?", "columns": ["summary","logged_at"], "limit": 5}'
     )
   )['results'] AS r
 )

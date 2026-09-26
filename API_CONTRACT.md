@@ -61,7 +61,7 @@ Request
 - `type`: `"data_sharing" | "spending" | "tool_selection"`
 - `verdict`: free string, usually `"flag" | "safe" | "recommendation"`
 
-Response: `{ "ok": true }`
+Response: `{ "ok": true, "stored": "snowflake" }` (`"memory"` when Snowflake is off or unreachable)
 
 ---
 
@@ -75,6 +75,22 @@ Response (newest first)
   { "time": "2026-09-20T14:02:00Z", "type": "data_sharing", "summary": "Flagged tax_return_2025.pdf ...", "verdict": "flag" }
 ]
 ```
+
+---
+
+## `GET /ask?q=...` *(added)*
+
+"Ask your history" as a real answer, not just a list. Cortex Search retrieves the matching interactions and Cortex COMPLETE writes Connie's reply from them (RAG, all inside Snowflake).
+
+Response
+```json
+{
+  "answer": "You shared your home address twice: your resume on Sep 10 and a lease on Sep 24.",
+  "sources": [ { "time": "...", "type": "data_sharing", "summary": "...", "verdict": "flag" } ],
+  "engine": "cortex"
+}
+```
+`engine` is `"local"` when Snowflake is off. Then `answer` is a simple count and `sources` comes from keyword search. Takes 1–5 s, so show a loading state.
 
 ---
 
