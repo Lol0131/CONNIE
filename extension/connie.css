@@ -1,0 +1,105 @@
+/* Loaded inside Connie's shadow root, so none of this leaks into the host page. */
+:host, .connie {
+  --sage: #EEF3EA;
+  --plum: #2E2440;
+  --coral: #E8637A;
+  --coral-soft: #F7C6CF;
+  --gold: #D9A441;
+  --charcoal: #5C5568;
+  --card: #FFFFFF;
+}
+
+.connie {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  color: var(--plum);
+  pointer-events: none;
+}
+.connie[data-state="hidden"] { visibility: hidden; }
+.connie[data-state="shown"] { pointer-events: auto; }
+
+.bubble {
+  max-width: 320px;
+  background: var(--card);
+  border-radius: 18px 18px 4px 18px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 30px rgba(46, 36, 64, 0.18);
+  border-top: 4px solid var(--coral);
+}
+.connie[data-tone="safe"] .bubble { border-top-color: #7FA36B; }
+
+.eyebrow {
+  margin: 0 0 4px;
+  font: 600 11px/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+.msg {
+  margin: 0;
+  font: 500 15px/1.45 Fraunces, Georgia, serif;
+}
+
+.chips { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chips:empty { display: none; }
+.chips li {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #FBEFD6;
+  color: #7A5714;
+}
+
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+.actions:empty { display: none; }
+.actions button {
+  font: 600 13px Inter, system-ui, sans-serif;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #D8D3DE;
+  background: transparent;
+  color: var(--charcoal);
+  cursor: pointer;
+}
+.actions button.primary { background: var(--coral); border-color: var(--coral); color: #fff; }
+.actions button:hover { filter: brightness(0.95); }
+.actions button:focus-visible, .avatar:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.avatar {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.avatar svg { width: 100%; height: 100%; overflow: visible; }
+.body { fill: var(--coral); }
+.leaf { fill: #7FA36B; }
+.eye { fill: var(--plum); }
+.blush { fill: var(--coral-soft); }
+.smile { fill: none; stroke: var(--plum); stroke-width: 2.4; stroke-linecap: round; }
+
+/* Pop in, then bob gently. */
+.connie[data-state="shown"] .avatar { animation: pop 0.5s cubic-bezier(.34, 1.56, .64, 1), bob 3s ease-in-out 0.5s infinite; }
+.connie[data-state="shown"] .bubble { animation: rise 0.35s ease-out 0.15s both; }
+.eye { animation: blink 4s infinite; transform-origin: center; transform-box: fill-box; }
+
+@keyframes pop { from { transform: scale(0) rotate(-20deg); } to { transform: scale(1) rotate(0); } }
+@keyframes bob { 50% { transform: translateY(-5px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .connie *, .connie { animation: none !important; }
+}
+@media (max-width: 480px) {
+  .bubble { max-width: calc(100vw - 120px); }
+}

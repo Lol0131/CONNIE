@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Connie — mindful AI helper",
+  "version": "0.1.0",
+  "description": "Connie checks files before you share them with an AI tool.",
+  "background": { "service_worker": "background.js" },
+  "host_permissions": ["http://localhost:5050/*"],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:5050/demo/*",
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["connie.css"],
+      "matches": ["http://localhost:5050/*", "https://chatgpt.com/*", "https://claude.ai/*", "https://gemini.google.com/*"]
+    }
+  ]
+}

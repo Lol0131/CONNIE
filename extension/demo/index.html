@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatDemo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #F7F7F8; --ink: #1F1F24; --muted: #6B6B76; --line: #E3E3E8; --accent: #3B5BDB; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
+    header { padding: 14px 20px; border-bottom: 1px solid var(--line); background: #fff; display: flex; justify-content: space-between; align-items: center; }
+    header strong { font-size: 16px; }
+    header span { color: var(--muted); font-size: 13px; }
+    main { max-width: 760px; margin: 0 auto; padding: 24px 16px 200px; }
+    .msg { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+    .msg.user { background: #EEF1FB; border-color: #DCE2F7; margin-left: 15%; }
+    .composer { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding: 30px 16px 20px; }
+    .box { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.05); }
+    .box.dragging { border-color: var(--accent); background: #F5F7FF; }
+    .attachments { display: flex; flex-wrap: wrap; gap: 6px; }
+    .attachments:empty { display: none; }
+    .chip { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; background: #F0F0F3; border-radius: 8px; padding: 4px 8px; }
+    .chip button { border: none; background: none; cursor: pointer; color: var(--muted); padding: 0 2px; }
+    .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+    .row input[type=text] { flex: 1; border: none; outline: none; font: inherit; padding: 8px 4px; min-width: 0; }
+    .row label, .row .send { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 7px 10px; cursor: pointer; font: 500 13px Inter, sans-serif; }
+    .row .send { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .samples { max-width: 760px; margin: 10px auto 0; font-size: 13px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .samples button { font: 500 12px Inter, sans-serif; border: 1px dashed #C9C9D2; background: transparent; border-radius: 8px; padding: 4px 8px; cursor: pointer; color: var(--ink); }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>ChatDemo</strong>
+    <span>A stand-in AI chat for the Connie demo · <a href="/app/" target="_blank">Connie dashboard ↗</a></span>
+  </header>
+
+  <main id="thread">
+    <div class="msg">Hi! I'm ChatDemo. Attach a file or drag one in and I'll help you with it.</div>
+  </main>
+
+  <div class="composer">
+    <div class="box" id="box">
+      <div class="attachments" id="attachments"></div>
+      <div class="row">
+        <label>📎 Attach<input id="file" type="file" multiple hidden></label>
+        <input type="text" id="prompt" placeholder="Ask anything… (or drop a file here)">
+        <button class="send" id="send">Send</button>
+      </div>
+    </div>
+    <div class="samples">
+      Try a sample:
+      <button data-sample="resume.txt">resume.txt</button>
+      <button data-sample="lecture_notes.txt">lecture_notes.txt</button>
+      <button data-sample="config.env">config.env</button>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("file");
+    const attachmentsEl = document.getElementById("attachments");
+    const box = document.getElementById("box");
+    let attached = [];
+
+    function render() {
+      attachmentsEl.replaceChildren(...attached.map((f) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = "📄 " + f.name;
+        const x = Object.assign(document.createElement("button"), { textContent: "×", title: "Remove" });
+        x.onclick = () => { attached = attached.filter((a) => a !== f); render(); };
+        chip.append(x);
+        return chip;
+      }));
+    }
+    function addFiles(files) {
+      attached.push(...files);
+      render();
+    }
+
+    fileInput.addEventListener("change", () => {
+      addFiles(Array.from(fileInput.files));
+      fileInput.value = ""; // lets you re-pick the same file to re-trigger Connie
+    });
+
+    box.addEventListener("dragover", (e) => { e.preventDefault(); box.classList.add("dragging"); });
+    box.addEventListener("dragleave", () => box.classList.remove("dragging"));
+    box.addEventListener("drop", (e) => {
+      e.preventDefault();
+      box.classList.remove("dragging");
+      addFiles(Array.from(e.dataTransfer.files));
+    });
+
+    // Connie's "Remove file" button
+    document.addEventListener("connie:remove-file", (e) => {
+      attached = attached.filter((f) => f.name !== e.detail);
+      render();
+    });
+
+    // Sample buttons put a real File into the input, exactly like the picker would.
+    document.querySelectorAll("[data-sample]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const name = btn.dataset.sample;
+        const text = await (await fetch("samples/" + name)).text();
+        const dt = new DataTransfer();
+        dt.items.add(new File([text], name, { type: "text/plain" }));
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+
+    document.getElementById("send").addEventListener("click", () => {
+      const prompt = document.getElementById("prompt");
+      if (!prompt.value && !attached.length) return;
+      const div = document.createElement("div");
+      div.className = "msg user";
+      div.textContent = [prompt.value, ...attached.map((f) => "📄 " + f.name)].filter(Boolean).join("\n");
+      document.getElementById("thread").append(div);
+      prompt.value = "";
+      attached = [];
+      render();
+    });
+  </script>
+
+  <!-- Simulated extension: the same content script the real extension injects.
+       If the real extension is installed, the script sees that and skips itself. -->
+  <script src="/extension/content.js"></script>
+</body>
+</html>
