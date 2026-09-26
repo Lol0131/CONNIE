@@ -29,13 +29,18 @@ LEVELS = {"low": 0, "medium": 1, "high": 2}
 CATEGORY_ORDER = ["government_id", "financial", "credentials", "contact_info", "personal_details"]
 
 
-def check(text: str, sensitivity: str) -> dict:
+def labeled_hits(text: str, sensitivity: str) -> list[tuple[str, str]]:
+    """(label, category) for every rule that matches at this sensitivity."""
     level = LEVELS.get(sensitivity, 1)
-    hits = [
+    return [
         (label, category)
         for label, category, pattern, min_level in RULES
         if LEVELS[min_level] <= level and re.search(pattern, text or "")
     ]
+
+
+def check(text: str, sensitivity: str) -> dict:
+    hits = labeled_hits(text, sensitivity)
     if not hits:
         return {"choice": "safe", "category": "none", "confidence": 0.8, "matches": []}
 

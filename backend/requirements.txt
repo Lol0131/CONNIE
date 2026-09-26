@@ -3,6 +3,6 @@ flask-cors==6.0.5
 python-dotenv==1.2.3
 google-genai==2.25.0
 pydantic>=2
+requests==2.34.2
 # Add when wiring real services:
 # snowflake-connector-python
-# requests

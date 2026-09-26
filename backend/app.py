@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, request, send_from_directory
 from flask_cors import CORS
 
-from connie import gemini, rules
+from connie import gemini, jev, rules
 from connie.seed import SEED_HISTORY
 
 load_dotenv()
@@ -37,6 +37,28 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def detect(text: str, sensitivity: str, file_name: str | None) -> tuple[dict, str]:
+    """Jev decides; the regex rules name specifics (and take over if Jev is down)."""
+    found = rules.check(text, sensitivity)
+    if not jev.enabled():
+        return found, "rules"
+    try:
+        verdict = jev.check(text, sensitivity, file_name)
+    except Exception as e:
+        app.logger.warning("Jev failed, using rules: %s", e)
+        return found, "rules"
+    if verdict["choice"] == "flag":
+        # Prefer the rules' precise labels ("Social Security number") within the
+        # categories Jev flagged; keep Jev's generic label where rules found nothing.
+        hit_cats = {c for c, label in jev.LABELS.items() if label in verdict["matches"]}
+        precise = [(label, cat) for label, cat in rules.labeled_hits(text, "high") if cat in hit_cats]
+        covered = {cat for _, cat in precise}
+        verdict["matches"] = [label for label, _ in precise] + [
+            jev.LABELS[c] for c in jev.SEVERITY if c in hit_cats - covered
+        ]
+    return verdict, "jev"
+
+
 @app.post("/check-content")
 def check_content():
     body = request.get_json(force=True) or {}
@@ -45,12 +67,9 @@ def check_content():
     if sensitivity not in LEVELS:
         return jsonify(error="sensitivity must be low, medium, or high"), 400
 
-    # TODO(jev): POST https://api.typesafe.ai/v1/systemone with the text as `state`
-    # and typed questions (flag? noul / category? choice). Fall back to rules on error.
-    verdict = rules.check(text, sensitivity)
-    verdict_engine = "rules"
-
     file_name = body.get("fileName")
+    verdict, verdict_engine = detect(text, sensitivity, file_name)
+
     try:
         advice = gemini.data_sharing_advice(verdict, sensitivity, file_name).model_dump()
         voice = "gemini"
@@ -127,10 +146,14 @@ def recommend_tool():
     task = ((request.get_json(force=True) or {}).get("task") or "").strip()
     if task:
         try:
+            if jev.enabled():
+                # Jev decides, Gemini explains.
+                pick, _ = jev.pick_tool(task, gemini.TOOLS)
+                return jsonify(pick=pick, reason=gemini.explain_tool(task, pick))
             advice = gemini.recommend_tool(task)
             return jsonify(pick=advice.pick, reason=advice.reason)
         except Exception as e:
-            app.logger.warning("Gemini tool pick failed, using keywords: %s", e)
+            app.logger.warning("Tool pick failed, using keywords: %s", e)
     task = task.lower()
     for keywords, pick, reason in TOOL_RULES:
         if any(k in task for k in keywords):

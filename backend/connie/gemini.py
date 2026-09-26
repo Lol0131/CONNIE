@@ -108,3 +108,15 @@ Pick the single best tool from this list, and explain why in one friendly senten
     if advice.pick not in candidates:
         raise ValueError(f"Gemini picked an unknown tool: {advice.pick}")
     return advice
+
+
+class ToolReason(BaseModel):
+    reason: str = Field(description="One sentence in Connie's voice on why this tool fits.")
+
+
+def explain_tool(task: str, pick: str) -> str:
+    """Jev already picked the tool; Gemini only explains the choice."""
+    prompt = f"""The user wants to do this task: "{task}"
+The best tool for it is {pick} ({TOOLS.get(pick, "")}).
+Explain in one friendly sentence why {pick} fits this task."""
+    return generate(prompt, ToolReason, temperature=0.5).reason
