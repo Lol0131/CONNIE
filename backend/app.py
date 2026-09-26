@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, request, send_from_directory
 from flask_cors import CORS
 
-from connie import rules
+from connie import gemini, rules
 from connie.seed import SEED_HISTORY
 
 load_dotenv()
@@ -48,12 +48,18 @@ def check_content():
     # TODO(jev): POST https://api.typesafe.ai/v1/systemone with the text as `state`
     # and typed questions (flag? noul / category? choice). Fall back to rules on error.
     verdict = rules.check(text, sensitivity)
+    verdict_engine = "rules"
 
-    # TODO(gemini): send verdict + sensitivity to Gemini with a response schema
-    # ({ message: string }) so Connie's voice comes from a real structured-output call.
-    message = rules.connie_message(verdict, sensitivity, body.get("fileName"))
+    file_name = body.get("fileName")
+    try:
+        advice = gemini.data_sharing_advice(verdict, sensitivity, file_name).model_dump()
+        voice = "gemini"
+    except Exception as e:
+        app.logger.warning("Gemini failed, using template: %s", e)
+        advice = rules.fallback_advice(verdict, sensitivity, file_name)
+        voice = "template"
 
-    return jsonify(**verdict, message=message)
+    return jsonify(**verdict, **advice, engine={"verdict": verdict_engine, "voice": voice})
 
 
 @app.post("/log")
@@ -118,9 +124,14 @@ TOOL_RULES = [
 
 @app.post("/recommend-tool")
 def recommend_tool():
-    task = ((request.get_json(force=True) or {}).get("task") or "").lower()
-    # TODO(jev): replace keyword match with a Jev `choice` question over the tool list,
-    # then have Gemini write the reason.
+    task = ((request.get_json(force=True) or {}).get("task") or "").strip()
+    if task:
+        try:
+            advice = gemini.recommend_tool(task)
+            return jsonify(pick=advice.pick, reason=advice.reason)
+        except Exception as e:
+            app.logger.warning("Gemini tool pick failed, using keywords: %s", e)
+    task = task.lower()
     for keywords, pick, reason in TOOL_RULES:
         if any(k in task for k in keywords):
             return jsonify(pick=pick, reason=reason)

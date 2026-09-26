@@ -50,8 +50,21 @@ def check(text: str, sensitivity: str) -> dict:
     }
 
 
+def fallback_advice(verdict: dict, sensitivity: str, file_name: str | None) -> dict:
+    """Same shape as gemini.DataAdvice, for when Gemini is unreachable."""
+    if verdict["choice"] == "safe":
+        return {"message": connie_message(verdict, sensitivity, file_name),
+                "tip": "You're good to share this one.", "mood": "cheerful"}
+    serious = verdict["category"] in ("government_id", "financial", "credentials")
+    return {
+        "message": connie_message(verdict, sensitivity, file_name),
+        "tip": "Remove those details before uploading, or share a redacted copy.",
+        "mood": "alarmed" if serious else "concerned",
+    }
+
+
 def connie_message(verdict: dict, sensitivity: str, file_name: str | None) -> str:
-    """Template message in Connie's voice. Replaced by Gemini structured output."""
+    """Template message in Connie's voice, used when Gemini is unavailable."""
     what = f"“{file_name}”" if file_name else "this file"
     if verdict["choice"] == "safe":
         return f"I looked through {what} and didn't spot anything personal. You're good to go!"

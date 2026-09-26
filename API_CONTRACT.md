@@ -25,15 +25,23 @@ Response
   "choice": "flag",
   "confidence": 0.93,
   "message": "Heads up! This file has your home address and phone number...",
+  "tip": "Remove those lines before uploading.",
+  "mood": "concerned",
   "category": "contact_info",
-  "matches": ["street address", "phone number"]
+  "matches": ["street address", "phone number"],
+  "engine": { "verdict": "rules", "voice": "gemini" }
 }
 ```
 - `choice`: `"flag" | "safe"`
 - `confidence`: number from 0 to 1
-- `message`: Connie's plain-English advice (written by Gemini in the real build)
+- `message`: Connie's plain-English advice, from Gemini structured output
+- `tip` *(added)*: one short, concrete next step
+- `mood` *(added)*: `"cheerful" | "concerned" | "alarmed"`. Drives Connie's facial expression.
 - `category` *(added)*: `"government_id" | "financial" | "credentials" | "contact_info" | "personal_details" | "none"`
 - `matches` *(added)*: human-readable list of what was found
+- `engine` *(added)*: which parts were live. `verdict`: `"jev" | "rules"`; `voice`: `"gemini" | "template"`. Handy for debugging and for being honest in the demo.
+
+Gemini can take 1–7 s, so callers should show a loading state.
 
 ---
 
