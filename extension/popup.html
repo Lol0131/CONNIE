@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Connie</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" alt="" width="36" height="36">
+    <div>
+      <h1>Connie</h1>
+      <p id="status" class="status">Connecting…</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="slider" data-key="dataSharing">
+      <div class="head"><label for="s-dataSharing">Data sharing</label><span class="level"></span></div>
+      <input id="s-dataSharing" type="range" min="0" max="2" step="1">
+    </div>
+    <div class="slider" data-key="spending">
+      <div class="head"><label for="s-spending">Spending</label><span class="level"></span></div>
+      <input id="s-spending" type="range" min="0" max="2" step="1">
+    </div>
+    <div class="slider" data-key="toolAssertiveness">
+      <div class="head"><label for="s-toolAssertiveness">Tool tips</label><span class="level"></span></div>
+      <input id="s-toolAssertiveness" type="range" min="0" max="2" step="1">
+    </div>
+
+    <button id="dashboard" class="dashboard" type="button">Open my dashboard</button>
+  </main>
+
+  <script src="connie-ui.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

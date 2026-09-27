@@ -120,9 +120,19 @@
     });
   </script>
 
-  <!-- Simulated extension: the same scripts the real extension injects.
-       If the real extension is installed, content.js sees that and skips itself. -->
-  <script src="/extension/connie-ui.js"></script>
-  <script src="/extension/content.js"></script>
+  <!-- Simulated extension: if the real extension isn't installed, load the same
+       scripts it injects. The extension runs at document_idle, so wait a beat
+       after load before deciding. -->
+  <script>
+    window.addEventListener("load", () => setTimeout(() => {
+      if (document.documentElement.dataset.connie) return; // real extension is here
+      for (const src of ["/extension/connie-ui.js", "/extension/content.js"]) {
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = false;
+        document.body.append(s);
+      }
+    }, 400));
+  </script>
 </body>
 </html>
