@@ -25,7 +25,8 @@ Connie is a small, animated helper who lives in your browser. When you're about 
         ├─ Jev (TypeSafe System One): 5 typed yes/no questions, one per data category
         │     the sensitivity slider decides which categories count and how sure Jev must be
         ├─ Gemini (structured output): { message, tip, mood } in Connie's voice
-        └─ Snowflake (REST): log it; Cortex Search + Cortex COMPLETE answer "ask your history"
+        └─ Snowflake (REST SQL API): log it with a Gemini embedding in a VECTOR column;
+              "ask your history" = vector search in Snowflake → Gemini writes the answer
         ▼
  Connie reacts (mood + advice) → Remove file (never reaches the site) or Share anyway (released)
 ```
@@ -36,7 +37,7 @@ Every service has a fallback, so the demo never dies on stage. If Jev is down, r
 |---|---|
 | **Assurant: real control** | She doesn't just warn. The upload is held until you choose, and Remove means the site never gets the file. Sliders change what she catches. |
 | **Gemini** | Structured output (a Pydantic schema) for every message. Multimodal: reads photos and screenshots. Explains Jev's tool picks. |
-| **Snowflake** | All calls go over REST with a programmatic access token: the SQL API for settings and the log, the Cortex Search REST endpoint for retrieval, and Cortex COMPLETE to write the answer to "ask your history" (RAG, entirely in Snowflake). |
+| **Snowflake** | Connie's memory and retrieval engine, all over the REST SQL API with a programmatic access token. It stores settings and the interaction log, keeps a `VECTOR(FLOAT, 768)` embedding per entry, and does the semantic search for "ask your history" with `VECTOR_COSINE_SIMILARITY` (RAG with Snowflake as the vector store). With Snowflake AI features enabled, `SNOWFLAKE_SEARCH=cortex` switches retrieval to Cortex Search and the answer to Cortex COMPLETE (`05_cortex_optional.sql`). |
 
 ---
 
@@ -72,12 +73,14 @@ All keys go in `backend/.env`, which is git-ignored. Edits take effect when the 
 - **Gemini:** [aistudio.google.com](https://aistudio.google.com) → Get API key → `GEMINI_API_KEY`.
 - **Jev:** TypeSafe AI key → `TYPESAFE_API_KEY`. API docs: [docs.typesafe.ai/api](https://docs.typesafe.ai/api).
 - **Snowflake:**
-  1. In a Snowsight worksheet, run `snowflake/01_schema.sql` → `02_seed.sql` → `03_cortex.sql` → `04_access.sql`.
+  1. In a Snowsight worksheet, run `snowflake/01_schema.sql` → `02_seed.sql` → `03_vector.sql` → `04_access.sql`.
   2. `04_access.sql` creates a narrow `CONNIE_APP` role and prints a programmatic access token **once**. Copy `token_secret` into `SNOWFLAKE_PAT`.
   3. Set `SNOWFLAKE_ACCOUNT` to your account identifier (the `myorg-myaccount` part of your Snowflake URL).
-  4. If Cortex COMPLETE says the model isn't available in your region, change `SNOWFLAKE_LLM`.
+  4. The seed entries get their embeddings the first time someone asks a question.
 
   PATs normally require a network policy. `04_access.sql` relaxes that for PATs only, since a hackathon laptop's IP keeps changing.
+
+  Self-service **trial accounts can't use Cortex AI functions** until a credit card is added ("AI function COMPLETE is not available for trial accounts"). That's why the default search is vector-based. If you get an AI-enabled account, run `05_cortex_optional.sql` and set `SNOWFLAKE_SEARCH=cortex`.
 
 ---
 
@@ -98,7 +101,7 @@ All keys go in `backend/.env`, which is git-ignored. Edits take effect when the 
 3. **id_card.png** → Gemini reads the photo, and Connie catches the license number.
 4. **lecture_notes.txt** on Medium → safe. Slide **Data sharing** to High in the popup → try again → she flags the name and school.
 5. Dashboard → pause a duplicate subscription, then ask the tool picker "summarize a 200-page PDF".
-6. **Ask your history:** "when did I share my address?" → Snowflake Cortex answers from your own log.
+6. **Ask your history:** "when did I share my address?" → Snowflake finds the matching entries by meaning, and Connie answers from your own log.
 
 ---
 
@@ -110,7 +113,7 @@ backend/
   app.py               endpoints and the fallback chain
   connie/jev.py        TypeSafe System One: data categories + tool choice
   connie/gemini.py     structured output: advice, tool reasons, image reading
-  connie/snow.py       Snowflake SQL API, Cortex Search, Cortex COMPLETE
+  connie/snow.py       Snowflake SQL API: settings, log, vector search (or Cortex)
   connie/extract.py    PDF / DOCX / image → text
   connie/rules.py      regex detector + template wording (fallbacks)
 extension/
@@ -121,7 +124,7 @@ extension/
   popup.*              toolbar popup
   demo/                stand-in AI chat + sample files (all fake data)
 webapp/                dashboard
-snowflake/             01 schema · 02 seed · 03 Cortex Search · 04 role + token
+snowflake/             01 schema · 02 seed · 03 vector column · 04 role + token · 05 Cortex (optional)
 ```
 
 All personal data in the samples is made up. The ID card is marked SPECIMEN.

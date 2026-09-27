@@ -147,14 +147,16 @@ def search():
 
 @app.get("/ask")
 def ask():
-    """Ask your history: Cortex Search retrieves, Cortex COMPLETE answers."""
+    """Ask your history. Snowflake retrieves (vector search or Cortex Search), then
+    Gemini or Cortex COMPLETE answers; see connie/snow.py."""
     q = request.args.get("q", "").strip()
     if not q:
         return jsonify(error="q is required"), 400
     if snow.enabled():
         try:
             sources = snow.search(q, limit=6)
-            return jsonify(answer=snow.answer(q, sources), sources=sources, engine="cortex")
+            engine = "cortex" if snow.mode() == "cortex" else "snowflake-vector"
+            return jsonify(answer=snow.answer(q, sources), sources=sources, engine=engine)
         except Exception as e:
             app.logger.warning("Cortex ask failed, using local history: %s", e)
     sources = local_search(q, limit=6)

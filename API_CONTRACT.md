@@ -87,17 +87,22 @@ Response (newest first)
 
 ## `GET /ask?q=...` *(added)*
 
-"Ask your history" as a real answer, not just a list. Cortex Search retrieves the matching interactions and Cortex COMPLETE writes Connie's reply from them (RAG, all inside Snowflake).
+"Ask your history" as a real answer, not just a list. Snowflake retrieves the matching interactions, and Connie's reply is written from them (RAG).
 
 Response
 ```json
 {
   "answer": "You shared your home address twice: your resume on Sep 10 and a lease on Sep 24.",
   "sources": [ { "time": "...", "type": "data_sharing", "summary": "...", "verdict": "flag" } ],
-  "engine": "cortex"
+  "engine": "snowflake-vector"
 }
 ```
-`engine` is `"local"` when Snowflake is off. Then `answer` is a simple count and `sources` comes from keyword search. Takes 1–5 s, so show a loading state.
+`engine` says which path answered:
+- `"snowflake-vector"`: Snowflake `VECTOR_COSINE_SIMILARITY` over Gemini embeddings, answer by Gemini. This is the default, and it works on trial accounts.
+- `"cortex"`: Cortex Search plus Cortex COMPLETE (`SNOWFLAKE_SEARCH=cortex`).
+- `"local"`: Snowflake is off. `answer` is a simple count, and `sources` comes from keyword search.
+
+Sources from vector search include a `score` (cosine similarity). Takes 1–5 s, so show a loading state.
 
 ---
 

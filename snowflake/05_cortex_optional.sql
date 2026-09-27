@@ -1,4 +1,8 @@
 -- Connie: "ask your history" via Cortex Search (RAG) + Cortex LLM.
+-- OPTIONAL. Needs Snowflake AI features, which self-service trial accounts don't
+-- have until a credit card is added. Run after 04, then set SNOWFLAKE_SEARCH=cortex
+-- in backend/.env. Without this, 03_vector.sql handles search.
+USE ROLE ACCOUNTADMIN;
 USE SCHEMA CONNIE.APP;
 USE WAREHOUSE CONNIE_WH;
 
@@ -51,3 +55,7 @@ SELECT SNOWFLAKE.CORTEX.COMPLETE(
   || ' Question: how much am I spending on AI?'
 ) AS connie_answer
 FROM hits;
+
+-- 5. Let the backend's role use the service and Cortex functions.
+GRANT USAGE ON CORTEX SEARCH SERVICE CONNIE.APP.CONNIE_HISTORY_SEARCH TO ROLE CONNIE_APP;
+GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE CONNIE_APP;

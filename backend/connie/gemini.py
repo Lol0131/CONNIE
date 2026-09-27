@@ -133,3 +133,40 @@ def read_image(data: bytes, mime: str) -> str:
               "including numbers, names, and addresses. Then describe the image in one sentence.")
     result = generate([types.Part.from_bytes(data=data, mime_type=mime), prompt], ImageText, temperature=0)
     return f"Image shows: {result.description}\n\n{result.text}"
+
+
+# --- History search (used when Snowflake Cortex isn't available) --------------
+
+EMBED_MODEL = os.getenv("GEMINI_EMBED_MODEL", "gemini-embedding-001")
+EMBED_DIM = 768  # must match VECTOR(FLOAT, 768) in snowflake/03_vector.sql
+
+
+def embed(texts: list[str], task: str = "RETRIEVAL_DOCUMENT") -> list[list[float]]:
+    """Embeddings for Snowflake to store and search. task: RETRIEVAL_DOCUMENT | RETRIEVAL_QUERY."""
+    resp = client().models.embed_content(
+        model=EMBED_MODEL,
+        contents=texts,
+        config=types.EmbedContentConfig(output_dimensionality=EMBED_DIM, task_type=task),
+    )
+    return [e.values for e in resp.embeddings]
+
+
+class HistoryAnswer(BaseModel):
+    answer: str = Field(description="1-3 short sentences answering the question from the history.")
+
+
+def answer_history(question: str, sources: list[dict]) -> str:
+    """Writes Connie's answer from the entries Snowflake retrieved."""
+    context = "\n".join(f"- [{s['time']}] ({s['type']}, {s['verdict']}) {s['summary']}" for s in sources)
+    prompt = f"""The user is asking about their own AI usage history.
+Answer using ONLY these entries (most relevant first). Mention dates when helpful,
+written like "Sep 24". If the entries don't answer the question, say so kindly.
+Be exact about what happened: "Flagged ... User removed the file" means Connie
+caught it and it was NOT shared; "User shared anyway" means it WAS shared;
+"Nothing personal found" means the file was safe to share.
+
+History:
+{context or "(no matching entries)"}
+
+Question: {question}"""
+    return generate(prompt, HistoryAnswer, temperature=0.3).answer

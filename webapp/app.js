@@ -272,9 +272,10 @@ $("#searchForm").addEventListener("submit", async (e) => {
     const { answer, sources, engine } = await api("/ask?q=" + encodeURIComponent(q));
     text.className = "answer-text";
     text.textContent = answer;
-    $("#answerEngine").textContent = engine === "cortex"
-      ? "Answered by Snowflake Cortex from your history"
-      : "Snowflake isn't connected, so this is a simple local search";
+    $("#answerEngine").textContent = {
+      cortex: "Found by Snowflake Cortex Search · answered by Cortex",
+      "snowflake-vector": "Found by Snowflake vector search · answered by Gemini",
+    }[engine] || "Snowflake isn't connected, so this is a simple local search";
     $("#listLabel").textContent = "What I found";
     renderEntries(sources);
   } catch (err) {
