@@ -2,7 +2,8 @@
 -- Run as ACCOUNTADMIN after 01-03. The last statement prints the token ONCE:
 -- copy token_secret into backend/.env as SNOWFLAKE_PAT.
 USE ROLE ACCOUNTADMIN;
-SET me = CURRENT_USER();
+-- Quoted so IDENTIFIER() keeps the exact case (trial usernames can be lowercase).
+SET me = '"' || CURRENT_USER() || '"';
 
 -- A role that can only do what the backend needs.
 CREATE ROLE IF NOT EXISTS CONNIE_APP;
