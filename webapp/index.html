@@ -7,13 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <!-- Connie's avatar + bubble styles are shared with the extension -->
-  <link rel="stylesheet" href="/extension/connie.css">
 </head>
 <body>
   <header class="top">
     <div class="brand">
-      <span class="logo" aria-hidden="true"></span>
+      <img class="logo" src="/extension/icons/icon128.png" alt="" width="40" height="40">
       <div>
         <h1>Connie</h1>
         <p>Your heads-up for using AI mindfully</p>
@@ -80,33 +78,20 @@
         <h2>Ask your history</h2>
         <form id="searchForm" class="inline-form">
           <input id="q" type="search" placeholder="e.g. when did I share my address?" autocomplete="off">
-          <button type="submit">Search</button>
+          <button type="submit">Ask Connie</button>
         </form>
+        <div class="answer" id="answer" hidden>
+          <p class="answer-text" id="answerText"></p>
+          <p class="answer-engine" id="answerEngine"></p>
+        </div>
+        <p class="list-label" id="listLabel">Recent activity</p>
         <ol class="entries" id="entries"></ol>
       </section>
     </main>
   </div>
 
-  <!-- Connie (same markup as the extension, minus the shadow root) -->
-  <div class="connie" data-state="hidden" id="connie">
-    <div class="bubble" role="status" aria-live="polite">
-      <p class="eyebrow">Connie</p>
-      <p class="msg"></p>
-      <div class="actions"></div>
-    </div>
-    <button class="avatar" aria-label="Dismiss Connie">
-      <svg viewBox="0 0 80 80" aria-hidden="true">
-        <path class="leaf" d="M40 16 C 36 6, 46 2, 50 6 C 48 12, 44 14, 40 16 Z"/>
-        <circle class="body" cx="40" cy="45" r="29"/>
-        <circle class="eye" cx="30" cy="42" r="3.6"/>
-        <circle class="eye" cx="50" cy="42" r="3.6"/>
-        <ellipse class="blush" cx="23" cy="52" rx="5" ry="3"/>
-        <ellipse class="blush" cx="57" cy="52" rx="5" ry="3"/>
-        <path class="smile" d="M33 53 Q 40 59 47 53"/>
-      </svg>
-    </button>
-  </div>
-
+  <!-- Connie herself is shared with the extension -->
+  <script src="/extension/connie-ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

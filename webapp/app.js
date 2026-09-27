@@ -1,5 +1,6 @@
 // Connie dashboard. Talks to the backend described in API_CONTRACT.md.
-const API_BASE = "http://localhost:5050";
+// Served by the backend, so call our own origin.
+const API_BASE = location.origin;
 const LEVELS = ["low", "medium", "high"];
 
 const EXPLAIN = {
@@ -69,25 +70,16 @@ function setStatus(ok) {
 }
 
 // --- Connie ------------------------------------------------------------------
-const connie = $("#connie");
-let hideTimer;
-function say(message, { actions = [], autoHideMs = 6000 } = {}) {
-  clearTimeout(hideTimer);
-  connie.querySelector(".msg").textContent = message;
-  connie.querySelector(".actions").replaceChildren(
-    ...actions.map(({ label, primary, onClick }) => {
-      const b = el("button", { textContent: label, className: primary ? "primary" : "" });
-      b.onclick = () => { hush(); onClick?.(); };
-      return b;
-    }),
-  );
-  connie.dataset.state = "hidden";
-  void connie.offsetWidth;
-  connie.dataset.state = "shown";
-  if (autoHideMs) hideTimer = setTimeout(hush, autoHideMs);
-}
-const hush = () => (connie.dataset.state = "hidden");
-connie.querySelector(".avatar").onclick = hush;
+const connie = ConnieUI.mount({
+  cssHref: "/extension/connie.css",
+  onPeekClick: (c) => c.say({
+    mood: "cheerful",
+    message: "Hi! This is your AI dashboard. Slide the settings on the left to tell me how careful to be.",
+    autoHideMs: 5000,
+  }),
+});
+const say = (message, { mood = "cheerful", autoHideMs = 6000, ...rest } = {}) =>
+  connie.say({ message, mood, autoHideMs, ...rest });
 
 // --- Sliders -----------------------------------------------------------------
 function renderSliders() {
@@ -231,18 +223,16 @@ $("#task").addEventListener("input", () => {
   if (settings.toolAssertiveness === "low" || task.length < 12) return;
   typingTimer = setTimeout(async () => {
     const { pick, reason } = await recommend(task);
-    if (settings.toolAssertiveness === "high") say(`Quick thought: ${pick} might be better for this. ${reason}`);
+    if (settings.toolAssertiveness === "high") say(`Quick thought: ${pick} might be better for this. ${reason}`, { mood: "concerned" });
   }, 900);
 });
 
 // --- History (Cortex Search in the real build) ---------------------------------
 const TYPE_LABEL = { data_sharing: "Data", spending: "Spending", tool_selection: "Tools" };
 
-async function loadHistory(q = "") {
+function renderEntries(rows) {
   const list = $("#entries");
-  try {
-    const rows = await api("/search?q=" + encodeURIComponent(q));
-    list.replaceChildren(
+  list.replaceChildren(
       ...(rows.length
         ? rows.map((r) =>
             el("li", {},
@@ -255,16 +245,43 @@ async function loadHistory(q = "") {
             ),
           )
         : [el("li", { className: "empty", textContent: "Nothing in your history matches that." })]),
-    );
+  );
+}
+
+async function loadHistory() {
+  $("#listLabel").textContent = "Recent activity";
+  try {
+    renderEntries(await api("/search"));
   } catch (e) {
     console.warn(e);
-    list.replaceChildren(el("li", { className: "empty", textContent: "Couldn't load history. Is the backend running?" }));
+    $("#entries").replaceChildren(el("li", { className: "empty", textContent: "Couldn't load history. Is the backend running?" }));
   }
 }
 
-$("#searchForm").addEventListener("submit", (e) => {
+// Ask your history: Cortex Search finds the entries, Cortex COMPLETE answers.
+$("#searchForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  loadHistory($("#q").value.trim());
+  const q = $("#q").value.trim();
+  if (!q) return loadHistory();
+  const box = $("#answer"), text = $("#answerText");
+  box.hidden = false;
+  text.className = "answer-text loading";
+  text.textContent = "Looking through your history…";
+  $("#answerEngine").textContent = "";
+  try {
+    const { answer, sources, engine } = await api("/ask?q=" + encodeURIComponent(q));
+    text.className = "answer-text";
+    text.textContent = answer;
+    $("#answerEngine").textContent = engine === "cortex"
+      ? "Answered by Snowflake Cortex from your history"
+      : "Snowflake isn't connected, so this is a simple local search";
+    $("#listLabel").textContent = "What I found";
+    renderEntries(sources);
+  } catch (err) {
+    console.warn(err);
+    text.className = "answer-text";
+    text.textContent = "I couldn't search your history just now. Is the backend running?";
+  }
 });
 
 // --- Boot ------------------------------------------------------------------------
