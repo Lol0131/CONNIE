@@ -52,7 +52,9 @@
     </div>
     <div class="samples">
       Try a sample:
-      <button data-sample="resume.txt">resume.txt</button>
+      <button data-sample="resume.pdf">resume.pdf</button>
+      <button data-sample="id_card.png">id_card.png</button>
+      <button data-sample="intake_form.docx">intake_form.docx</button>
       <button data-sample="lecture_notes.txt">lecture_notes.txt</button>
       <button data-sample="config.env">config.env</button>
     </div>
@@ -93,19 +95,13 @@
       addFiles(Array.from(e.dataTransfer.files));
     });
 
-    // Connie's "Remove file" button
-    document.addEventListener("connie:remove-file", (e) => {
-      attached = attached.filter((f) => f.name !== e.detail);
-      render();
-    });
-
     // Sample buttons put a real File into the input, exactly like the picker would.
     document.querySelectorAll("[data-sample]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const name = btn.dataset.sample;
-        const text = await (await fetch("samples/" + name)).text();
+        const blob = await (await fetch("samples/" + name)).blob();
         const dt = new DataTransfer();
-        dt.items.add(new File([text], name, { type: "text/plain" }));
+        dt.items.add(new File([blob], name, { type: blob.type }));
         fileInput.files = dt.files;
         fileInput.dispatchEvent(new Event("change", { bubbles: true }));
       });
@@ -124,8 +120,9 @@
     });
   </script>
 
-  <!-- Simulated extension: the same content script the real extension injects.
-       If the real extension is installed, the script sees that and skips itself. -->
+  <!-- Simulated extension: the same scripts the real extension injects.
+       If the real extension is installed, content.js sees that and skips itself. -->
+  <script src="/extension/connie-ui.js"></script>
   <script src="/extension/content.js"></script>
 </body>
 </html>

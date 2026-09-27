@@ -1,62 +1,88 @@
-/* Loaded inside Connie's shadow root, so none of this leaks into the host page. */
-:host, .connie {
+/* Connie's look. Loaded inside her shadow root, so nothing leaks either way. */
+.connie {
   --sage: #EEF3EA;
   --plum: #2E2440;
   --coral: #E8637A;
-  --coral-soft: #F7C6CF;
+  --coral-deep: #C9485F;
+  --blush: #FFB8C6;
   --gold: #D9A441;
+  --leaf: #6FA05A;
   --charcoal: #5C5568;
   --card: #FFFFFF;
-}
+  --size: 92px;
 
-.connie {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: 18px;
+  bottom: 0;
   z-index: 2147483647;
   display: flex;
   align-items: flex-end;
-  gap: 10px;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  gap: 6px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--plum);
   pointer-events: none;
 }
-.connie[data-state="hidden"] { visibility: hidden; }
-.connie[data-state="shown"] { pointer-events: auto; }
+.connie * { box-sizing: border-box; }
+.connie.preload, .connie.preload * { transition: none !important; }
 
+/* ---------- Avatar placement: peek vs. open ---------- */
+.avatar {
+  flex: none;
+  width: var(--size);
+  height: var(--size);
+  margin-bottom: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform .45s cubic-bezier(.34, 1.56, .64, 1);
+}
+.avatar:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; border-radius: 50%; }
+.connie[data-state="peek"] .avatar { transform: translateY(52%); }
+.connie[data-state="peek"] .avatar:hover { transform: translateY(40%) rotate(-4deg); }
+.connie[data-state="open"] .avatar { transform: translateY(0); }
+
+/* ---------- Speech bubble ---------- */
 .bubble {
-  max-width: 320px;
+  width: 300px;
+  max-width: calc(100vw - var(--size) - 40px);
+  margin-bottom: 70px;
   background: var(--card);
-  border-radius: 18px 18px 4px 18px;
-  padding: 14px 16px;
-  box-shadow: 0 10px 30px rgba(46, 36, 64, 0.18);
+  border-radius: 20px 20px 6px 20px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 12px 32px rgba(46, 36, 64, .18), 0 2px 6px rgba(46, 36, 64, .08);
   border-top: 4px solid var(--coral);
+  pointer-events: auto;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(10px) scale(.96);
+  transform-origin: bottom right;
+  transition: opacity .2s, transform .2s, visibility 0s .2s;
 }
-.connie[data-tone="safe"] .bubble { border-top-color: #7FA36B; }
+.connie[data-state="open"] .bubble {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition: opacity .25s ease-out .12s, transform .3s cubic-bezier(.34, 1.4, .64, 1) .12s;
+}
+.connie[data-mood="cheerful"] .bubble { border-top-color: var(--leaf); }
+.connie[data-mood="alarmed"] .bubble { border-top-color: #D83A56; }
+.connie[data-mood="thinking"] .bubble { border-top-color: var(--gold); }
 
-.eyebrow {
-  margin: 0 0 4px;
-  font: 600 11px/1 Inter, system-ui, sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--coral);
-}
-.msg {
-  margin: 0;
-  font: 500 15px/1.45 Fraunces, Georgia, serif;
-}
+.eyebrow { margin: 0 0 4px; font: 700 11px/1 Inter, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--coral); }
+.msg { margin: 0; font: 500 15px/1.45 Fraunces, Georgia, serif; }
+.msg.dots::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
+
+.tip { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: #F4F8F1; font-size: 13px; line-height: 1.4; display: flex; gap: 8px; }
+.tip[hidden] { display: none; }
+.tip span:first-child { font-weight: 700; color: var(--leaf); white-space: nowrap; }
 
 .chips { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .chips:empty { display: none; }
-.chips li {
-  font-size: 12px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #FBEFD6;
-  color: #7A5714;
-}
+.chips li { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #FBEFD6; color: #7A5714; }
 
-.actions { display: flex; gap: 8px; margin-top: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .actions:empty { display: none; }
 .actions button {
   font: 600 13px Inter, system-ui, sans-serif;
@@ -68,38 +94,98 @@
   cursor: pointer;
 }
 .actions button.primary { background: var(--coral); border-color: var(--coral); color: #fff; }
-.actions button:hover { filter: brightness(0.95); }
-.actions button:focus-visible, .avatar:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.actions button:hover { filter: brightness(.95); }
+.actions button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
-.avatar {
-  flex: none;
-  width: 72px;
-  height: 72px;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-.avatar svg { width: 100%; height: 100%; overflow: visible; }
-.body { fill: var(--coral); }
-.leaf { fill: #7FA36B; }
-.eye { fill: var(--plum); }
-.blush { fill: var(--coral-soft); }
-.smile { fill: none; stroke: var(--plum); stroke-width: 2.4; stroke-linecap: round; }
+.footnote { margin: 10px 0 0; font-size: 11px; color: #8C8698; }
+.footnote:empty { display: none; }
 
-/* Pop in, then bob gently. */
-.connie[data-state="shown"] .avatar { animation: pop 0.5s cubic-bezier(.34, 1.56, .64, 1), bob 3s ease-in-out 0.5s infinite; }
-.connie[data-state="shown"] .bubble { animation: rise 0.35s ease-out 0.15s both; }
-.eye { animation: blink 4s infinite; transform-origin: center; transform-box: fill-box; }
+/* ---------- The character ---------- */
+.c-svg { width: 100%; height: 100%; overflow: visible; --lx: 0px; --ly: 0px; }
+.c-body { fill: url(#c-body-grad); }
+.c-belly { fill: #FFC4CF; opacity: .45; }
+.c-shine-body { fill: #fff; opacity: .45; }
+.c-shadow { fill: rgba(46, 36, 64, .16); transform-origin: 60px 113px; }
+.c-stem { fill: none; stroke: var(--leaf); stroke-width: 3; stroke-linecap: round; }
+.c-leaf { fill: var(--leaf); }
+.c-arm ellipse { fill: var(--coral-deep); }
+.c-arm-l { transform-origin: 26px 66px; }
+.c-arm-r { transform-origin: 94px 66px; }
+.c-eye ellipse { fill: var(--plum); }
+.c-glint { fill: #fff; }
+.c-eyes { transform: translate(var(--lx), var(--ly)); transition: transform .12s ease-out; }
+.c-eye { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
+.c-blush { fill: var(--blush); opacity: .85; }
+.c-brow { fill: none; stroke: var(--plum); stroke-width: 2.4; stroke-linecap: round; opacity: 0; transition: opacity .2s, d .2s; }
+.c-mouth { fill: none; stroke: var(--plum); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity .15s; }
+.m-grin, .m-o { fill: var(--plum); stroke-width: 1.5; }
+.m-smile { opacity: 1; }
+.c-sweat { fill: #9FD3F2; opacity: 0; }
+.c-sparkles path { fill: var(--gold); opacity: 0; transform-box: fill-box; transform-origin: center; }
+.c-glass { opacity: 0; transition: opacity .2s; }
+.c-glass circle { fill: rgba(255, 255, 255, .55); stroke: var(--plum); stroke-width: 3; }
+.c-glass line { stroke: #8A5A2B; stroke-width: 4; stroke-linecap: round; }
 
-@keyframes pop { from { transform: scale(0) rotate(-20deg); } to { transform: scale(1) rotate(0); } }
-@keyframes bob { 50% { transform: translateY(-5px); } }
-@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
-@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+/* Always-on life: bob, leaf sway, shadow breathing. */
+.c-bounce { animation: bob 3.2s ease-in-out infinite; }
+.c-shadow { animation: shadow 3.2s ease-in-out infinite; }
+.c-sprout { transform-origin: 60px 24px; animation: sway 2.6s ease-in-out infinite; }
+
+/* Say hi when she opens. */
+.connie[data-state="open"] .c-arm-l { animation: wave .9s ease-in-out 2; }
+
+/* thinking: magnifying glass sweep, eyes glance up */
+.connie[data-mood="thinking"] .m-smile { opacity: 0; }
+.connie[data-mood="thinking"] .m-think { opacity: 1; }
+.connie[data-mood="thinking"] .c-glass { opacity: 1; }
+.connie[data-mood="thinking"] .c-arm-r { animation: sweep 1.1s ease-in-out infinite alternate; }
+.connie[data-mood="thinking"] .c-eyes { transform: translate(2px, -2px); }
+
+/* cheerful: big grin + sparkles */
+.connie[data-mood="cheerful"] .m-smile { opacity: 0; }
+.connie[data-mood="cheerful"] .m-grin { opacity: 1; }
+.connie[data-mood="cheerful"] .c-sparkles path { animation: twinkle 1.4s ease-in-out infinite; }
+.connie[data-mood="cheerful"] .c-sparkles path:nth-child(2) { animation-delay: .35s; }
+.connie[data-mood="cheerful"] .c-sparkles path:nth-child(3) { animation-delay: .7s; }
+.connie[data-mood="cheerful"] .c-bounce { animation: hop .6s cubic-bezier(.3, 1.6, .6, 1) 2, bob 3.2s ease-in-out 1.2s infinite; }
+
+/* concerned: worried brows, wobbly mouth, head tilt */
+.connie[data-mood="concerned"] .m-smile { opacity: 0; }
+.connie[data-mood="concerned"] .m-worry { opacity: 1; }
+.connie[data-mood="concerned"] .c-brow { opacity: 1; }
+.connie[data-mood="concerned"] .c-brow-l { d: path("M40 51 Q 46 49 52 47"); }
+.connie[data-mood="concerned"] .c-brow-r { d: path("M68 47 Q 74 49 80 51"); }
+.connie[data-mood="concerned"] .c-bounce { transform-origin: 60px 104px; animation: tilt .5s ease-out forwards, bob 3.2s ease-in-out .5s infinite; }
+
+/* alarmed: wide eyes, O mouth, sweat drop, shiver, arms up */
+.connie[data-mood="alarmed"] .m-smile { opacity: 0; }
+.connie[data-mood="alarmed"] .m-o { opacity: 1; }
+.connie[data-mood="alarmed"] .c-brow { opacity: 1; }
+.connie[data-mood="alarmed"] .c-brow-l { d: path("M40 47 Q 46 43 52 46"); }
+.connie[data-mood="alarmed"] .c-brow-r { d: path("M68 46 Q 74 43 80 47"); }
+.connie[data-mood="alarmed"] .c-eye ellipse { transform-box: fill-box; transform-origin: center; transform: scale(1.18); }
+.connie[data-mood="alarmed"] .c-sweat { animation: sweat 1.6s ease-in infinite; }
+.connie[data-mood="alarmed"] .c-bounce { animation: shiver .45s ease-in-out 3, bob 3.2s ease-in-out 1.4s infinite; }
+.connie[data-mood="alarmed"] .c-arm-l { animation: none; transform: rotate(35deg); }
+.connie[data-mood="alarmed"] .c-arm-r { transform: rotate(-35deg); }
+.c-arm { transition: transform .25s; }
+
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.88); opacity: .75; } }
+@keyframes sway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(7deg); } }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes wave { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(40deg); } 60% { transform: rotate(10deg); } }
+@keyframes sweep { from { transform: rotate(-12deg) translate(0, 0); } to { transform: rotate(6deg) translate(-8px, 2px); } }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-12px); } }
+@keyframes tilt { to { transform: rotate(-5deg); } }
+@keyframes shiver { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2.5px); } 75% { transform: translateX(2.5px); } }
+@keyframes sweat { 0% { opacity: 0; transform: translateY(-3px); } 20% { opacity: 1; } 80% { opacity: 1; transform: translateY(6px); } 100% { opacity: 0; transform: translateY(9px); } }
+@keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .connie *, .connie { animation: none !important; }
+  .connie *, .connie *::after { animation: none !important; transition: none !important; }
 }
 @media (max-width: 480px) {
-  .bubble { max-width: calc(100vw - 120px); }
+  .connie { --size: 76px; right: 8px; }
 }
