@@ -1,0 +1,14 @@
+COP 4338 — Week 3 notes
+Florida International University
+
+Topics
+- Pointers and memory layout in C
+- malloc / free, and why you always check for NULL
+- Valgrind for finding leaks
+
+Study group
+Ana Reyes
+
+TODO
+- Finish lab 3 before Friday
+- Review pointer arithmetic examples

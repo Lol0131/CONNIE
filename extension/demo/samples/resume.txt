@@ -1,0 +1,16 @@
+Jordan Rivera
+4521 Palm Terrace, Miami, FL 33199
+(305) 555-0142 · jordan.rivera@example.com
+
+EDUCATION
+Florida International University — B.S. Computer Science, expected May 2027
+
+EXPERIENCE
+Software Engineering Intern, Sunshine Robotics Inc. — Summer 2026
+- Built a dashboard in React that cut report time by 40%
+- Wrote Python scripts to clean sensor data
+
+SKILLS
+Python, JavaScript, React, SQL, Git
+
+For background check: SSN 123-45-6789

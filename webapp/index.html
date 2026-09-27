@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connie Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img class="logo" src="/extension/icons/icon128.png" alt="" width="40" height="40">
+      <div>
+        <h1>Connie</h1>
+        <p>Your heads-up for using AI mindfully</p>
+      </div>
+    </div>
+    <span class="status" id="status">Connecting…</span>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT: the three sliders -->
+    <aside class="panel settings">
+      <h2>How careful should I be?</h2>
+      <p class="hint">These sync with the browser extension.</p>
+
+      <div class="slider" data-key="dataSharing">
+        <div class="slider-head"><span class="pillar">1 · Data sharing</span><span class="level"></span></div>
+        <label for="s-dataSharing">Sensitivity</label>
+        <input id="s-dataSharing" type="range" min="0" max="2" step="1">
+        <p class="explain"></p>
+      </div>
+
+      <div class="slider" data-key="spending">
+        <div class="slider-head"><span class="pillar">2 · Spending</span><span class="level"></span></div>
+        <label for="s-spending">Strictness</label>
+        <input id="s-spending" type="range" min="0" max="2" step="1">
+        <p class="explain"></p>
+      </div>
+
+      <div class="slider" data-key="toolAssertiveness">
+        <div class="slider-head"><span class="pillar">3 · Tool selection</span><span class="level"></span></div>
+        <label for="s-toolAssertiveness">Assertiveness</label>
+        <input id="s-toolAssertiveness" type="range" min="0" max="2" step="1">
+        <p class="explain"></p>
+      </div>
+
+      <h3>Training on your chats</h3>
+      <ul class="toggles" id="training"></ul>
+    </aside>
+
+    <main class="cards">
+      <!-- PILLAR 2 -->
+      <section class="panel" id="spending">
+        <h2>What am I spending?</h2>
+        <div class="budget">
+          <div class="budget-row">
+            <span id="spendTotal"></span>
+            <label class="budget-edit" for="budgetInput">
+              My budget $<input id="budgetInput" type="number" min="0" max="10000" step="5" inputmode="decimal">/mo
+            </label>
+          </div>
+          <div class="bar"><div class="fill" id="spendBar"></div></div>
+        </div>
+        <ul class="subs" id="subs"></ul>
+        <ul class="findings" id="findings"></ul>
+      </section>
+
+      <!-- PILLAR 3 -->
+      <section class="panel" id="tools">
+        <h2>Did I pick the right tool?</h2>
+        <form id="toolForm" class="inline-form">
+          <input id="task" type="text" placeholder="What are you trying to do? e.g. summarize a 200-page PDF" autocomplete="off">
+          <button type="submit">Ask Connie</button>
+        </form>
+        <div class="pick" id="pick" hidden></div>
+      </section>
+
+      <!-- HISTORY -->
+      <section class="panel" id="history">
+        <h2>Ask your history</h2>
+        <form id="searchForm" class="inline-form">
+          <input id="q" type="search" placeholder="e.g. when did I share my address?" autocomplete="off">
+          <button type="submit">Ask Connie</button>
+        </form>
+        <div class="answer" id="answer" hidden>
+          <p class="answer-text" id="answerText"></p>
+          <p class="answer-engine" id="answerEngine"></p>
+        </div>
+        <p class="list-label" id="listLabel">Recent activity</p>
+        <ol class="entries" id="entries"></ol>
+      </section>
+    </main>
+  </div>
+
+  <!-- Connie herself is shared with the extension -->
+  <script src="/extension/connie-ui.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
