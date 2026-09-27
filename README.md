@@ -2,111 +2,126 @@
 
 **ShellHacks 2026** · Assurant "Take Control of AI" · MLH Gemini API · MLH Snowflake API
 
-Connie is a cute, animated AI helper that lives in a **browser extension** and a **web app**. She checks files *before* you share them with an AI tool, keeps an eye on what you spend on AI, and tells you when a different tool would do the job better. Three sliders let you decide how careful she is.
+Connie is a small, animated helper who lives in your browser. When you're about to hand a file to an AI tool (a resume, a photo of your ID, a `.env` full of keys), she **holds it at the door**, checks it, and tells you in plain English what's inside before you decide. Three sliders set how careful she is. A dashboard shows your AI spending, suggests better tools, and lets you ask questions about your own history.
 
 > *Jev decides fast, Gemini explains kindly, Snowflake remembers.*
 
+![Connie's five moods](docs/connie-moods.png)
+
+| Connie stops a resume with an SSN | The toolbar popup |
+|---|---|
+| ![Connie flags a resume](docs/connie-flags-resume.png) | ![Popup with sliders](docs/connie-popup.png) |
+
 ---
 
-## Quick start
+## How it works
+
+```
+ file picked / dropped / pasted into an AI chat
+        │   Connie holds the event (capture phase, before the site sees it)
+        ▼
+ backend  ── extract text ──►  PDF · DOCX locally, images via Gemini (multimodal)
+        │
+        ├─ Jev (TypeSafe System One): 5 typed yes/no questions, one per data category
+        │     the sensitivity slider decides which categories count and how sure Jev must be
+        ├─ Gemini (structured output): { message, tip, mood } in Connie's voice
+        └─ Snowflake (REST): log it; Cortex Search + Cortex COMPLETE answer "ask your history"
+        ▼
+ Connie reacts (mood + advice) → Remove file (never reaches the site) or Share anyway (released)
+```
+
+Every service has a fallback, so the demo never dies on stage. If Jev is down, regex rules take over. If Gemini is down, template wording is used. If Snowflake is down, history lives in memory. If the whole backend is down, Connie lets the file through rather than breaking the site. Each response says which engines actually ran, and Connie shows it in small print ("Checked by Jev · worded by Gemini").
+
+| Challenge | What Connie does for it |
+|---|---|
+| **Assurant: real control** | She doesn't just warn. The upload is held until you choose, and Remove means the site never gets the file. Sliders change what she catches. |
+| **Gemini** | Structured output (a Pydantic schema) for every message. Multimodal: reads photos and screenshots. Explains Jev's tool picks. |
+| **Snowflake** | All calls go over REST with a programmatic access token: the SQL API for settings and the log, the Cortex Search REST endpoint for retrieval, and Cortex COMPLETE to write the answer to "ask your history" (RAG, entirely in Snowflake). |
+
+---
+
+## Run it
 
 ```bash
 cd backend
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-cp .env.example .env        # fill in keys when you wire real services
+cp .env.example .env        # add keys (see "Keys" below); blanks fall back gracefully
 .venv/bin/python app.py     # http://localhost:5050
 ```
 
-Then open:
-
 | URL | What it is |
 |---|---|
-| http://localhost:5050/demo/ | Mock AI chat with Connie running. Click **Try a sample → resume.txt**. |
-| http://localhost:5050/app/ | Dashboard: sliders, spending, tool picker, history search |
+| http://localhost:5050/demo/ | A stand-in AI chat. Use **Try a sample** to attach the demo files. |
+| http://localhost:5050/app/ | Dashboard: sliders, spending, tool picker, ask your history |
 
-The backend serves both pages, so one command runs the whole demo. Everything works right now on **stubbed logic** (see [What's real vs. stubbed](#whats-real-vs-stubbed)).
-
-### Loading the real extension (optional)
+### Install the extension
 
 1. Chrome → `chrome://extensions` → turn on **Developer mode**
-2. **Load unpacked** → pick the `extension/` folder
-3. Keep the backend running. The extension works on `/demo/`, chatgpt.com, claude.ai, and gemini.google.com.
+2. **Load unpacked** → choose the `extension/` folder
+3. Pin Connie from the puzzle-piece menu. Her popup has the sliders and a dashboard link.
 
-If packaging gives you trouble, the `/demo/` page already runs the same `content.js` as a plain script, which is the "simulated extension" fallback from the plan.
+She works on `/demo/`, chatgpt.com, claude.ai, and gemini.google.com. Keep the backend running. Without the extension, `/demo/` loads the same scripts itself, so the demo still works.
+
+---
+
+## Keys
+
+All keys go in `backend/.env`, which is git-ignored. Edits take effect when the dev server reloads.
+
+- **Gemini:** [aistudio.google.com](https://aistudio.google.com) → Get API key → `GEMINI_API_KEY`.
+- **Jev:** TypeSafe AI key → `TYPESAFE_API_KEY`. API docs: [docs.typesafe.ai/api](https://docs.typesafe.ai/api).
+- **Snowflake:**
+  1. In a Snowsight worksheet, run `snowflake/01_schema.sql` → `02_seed.sql` → `03_cortex.sql` → `04_access.sql`.
+  2. `04_access.sql` creates a narrow `CONNIE_APP` role and prints a programmatic access token **once**. Copy `token_secret` into `SNOWFLAKE_PAT`.
+  3. Set `SNOWFLAKE_ACCOUNT` to your account identifier (the `myorg-myaccount` part of your Snowflake URL).
+  4. If Cortex COMPLETE says the model isn't available in your region, change `SNOWFLAKE_LLM`.
+
+  PATs normally require a network policy. `04_access.sql` relaxes that for PATs only, since a hackathon laptop's IP keeps changing.
+
+---
+
+## Sliders
+
+| Pillar | Slider | Low | Medium | High |
+|---|---|---|---|---|
+| **Data sharing** | Sensitivity | IDs, card/bank numbers, passwords and keys | + address, phone, email, date of birth | + names, schools/employers, ZIP, health |
+| **Spending** | Strictness | Over budget only | + 3+ tools doing the same job | + any overlap and barely-used tools |
+| **Tool selection** | Assertiveness | Only when you ask | Quiet suggestion while typing | Connie pops in while typing |
+
+---
+
+## Demo script (~3 min)
+
+1. `/demo/` → **resume.pdf** → Connie grabs the magnifying glass, then turns alarmed: SSN, address, phone. The file is *not* attached.
+2. **Remove file** → it never reaches the chat. *"She doesn't just warn you, she gives you control."*
+3. **id_card.png** → Gemini reads the photo, and Connie catches the license number.
+4. **lecture_notes.txt** on Medium → safe. Slide **Data sharing** to High in the popup → try again → she flags the name and school.
+5. Dashboard → pause a duplicate subscription, then ask the tool picker "summarize a 200-page PDF".
+6. **Ask your history:** "when did I share my address?" → Snowflake Cortex answers from your own log.
 
 ---
 
 ## Repo layout
 
 ```
-API_CONTRACT.md        ← the endpoint shapes everyone builds against. Change it here first.
-backend/               Role 1: Flask API (the shared brain)
-  app.py               all endpoints + TODO(jev|gemini|snowflake) markers
-  connie/rules.py      regex detector (Jev fallback) + template messages (Gemini stand-in)
-  connie/seed.py       13 fake history entries (mirrors snowflake/02_seed.sql)
-extension/             Role 2: Chrome MV3 extension
-  content.js           watches file inputs + drag-and-drop, shows Connie (Shadow DOM)
-  background.js        proxies API calls (HTTPS sites can't fetch http://localhost)
-  connie.css           Connie's avatar, bubble, animations (web app reuses it)
-  demo/                mock AI chat page + sample files
-webapp/                Role 3: dashboard (plain HTML/CSS/JS, no build step)
-snowflake/             run in order in a Snowsight worksheet
-  01_schema.sql        warehouse, DB, USER_CONNIE_SETTINGS, INTERACTIONS
-  02_seed.sql          demo user + 13 seeded interactions
-  03_cortex.sql        Cortex Search service + smoke test + Cortex COMPLETE example
+API_CONTRACT.md        endpoint shapes; change them here first
+backend/
+  app.py               endpoints and the fallback chain
+  connie/jev.py        TypeSafe System One: data categories + tool choice
+  connie/gemini.py     structured output: advice, tool reasons, image reading
+  connie/snow.py       Snowflake SQL API, Cortex Search, Cortex COMPLETE
+  connie/extract.py    PDF / DOCX / image → text
+  connie/rules.py      regex detector + template wording (fallbacks)
+extension/
+  connie-ui.js         Connie: SVG character, moods, peek, speech bubble (shared)
+  connie.css           her look and animations
+  content.js           holds uploads, calls the backend, drives Connie
+  background.js        API proxy (HTTPS sites can't call localhost)
+  popup.*              toolbar popup
+  demo/                stand-in AI chat + sample files (all fake data)
+webapp/                dashboard
+snowflake/             01 schema · 02 seed · 03 Cortex Search · 04 role + token
 ```
 
----
-
-## How the sliders change behavior
-
-| Pillar | Slider | Low | Medium | High |
-|---|---|---|---|---|
-| **Data sharing** | Sensitivity | SSN, cards, passwords, API keys | + email, phone, address, DOB | + names, schools/employers, ZIP, health |
-| **Spending** | Strictness | Over budget only | + 3+ tools doing the same job | + any overlap, barely-used tools |
-| **Tool selection** | Assertiveness | Only when you click Ask | Quiet suggestion while typing | Connie pops in while typing |
-
-**Demo beat (tested):** with sensitivity on **medium**, `lecture_notes.txt` comes back safe. Slide it to **high** in the dashboard, attach it again, and Connie flags the name and school. `resume.txt` goes from 1 match on low to 4 on medium to 7 on high.
-
----
-
-## What's real vs. stubbed
-
-The stubs return exactly the shapes in `API_CONTRACT.md`, so the frontends won't need changes when real logic lands.
-
-| Piece | Now | To do | Owner |
-|---|---|---|---|
-| `/check-content` verdict | Regex rules (`connie/rules.py`) | Call Jev; keep the rules as fallback | Backend |
-| Connie's message | Template text | **Gemini structured output** (required) | Backend |
-| `/search` | Keyword match over in-memory list | **Cortex Search REST query** (required) | Backend |
-| `/log`, `/settings` | In-memory, resets on restart | Snowflake `INTERACTIONS` / `USER_CONNIE_SETTINGS` | Backend |
-| `/recommend-tool` | Keyword match | Jev `choice` over tool list + Gemini reason | Backend |
-| Spending data | Mock subscriptions in `webapp/app.js` | Fine for the demo | Web app |
-| "Training on your chats" toggles | UI-only, logs the action | Fine for the demo (say so if judges ask) | Web app |
-| PDF/DOCX text extraction | Sends filename only | pdf.js / mammoth if time allows | Extension |
-
-### Wiring notes
-
-**Jev.** The request shape in the original planning chat (`answer_space`) is wrong. The real endpoint is `POST https://api.typesafe.ai/v1/systemone` with `state`, `model` (e.g. `jev-latest`), and a `questions` object. Each question has a `type` (`choice`, `noul`, or `score`), `instructions`, and `criteria`. Check the TypeSafe docs and **test your key and rate limits early**. It's also on OpenRouter.
-
-**Gemini.** Pass the verdict (`choice`, `category`, `matches`), the slider level, and the filename. Ask for a JSON response schema like `{ "message": string }`, written in Connie's voice: warm, brief, like a friend giving a heads-up. It should mention the slider when relevant ("You have sensitivity set to high, so…").
-
-**Snowflake.** Run `snowflake/01` → `02` → `03`. If the `SEARCH_PREVIEW` smoke test in `03_cortex.sql` returns rows, the REST call will too. Build priority #1 in the plan: do this first, since it's the part most likely to eat time.
-
----
-
-## Demo script (~3 min)
-
-1. Open `/demo/` → **Try a sample → resume.txt** → Connie pops in and flags the SSN, address, and phone.
-2. Click **Remove file**: a real action, and the file disappears.
-3. Open `/app/`, slide **Sensitivity** to high → back to `/demo/` → attach `lecture_notes.txt` → now it's flagged.
-4. Show **Spending** (pause a duplicate subscription) and **Tool selection** (type "summarize a 200-page PDF").
-5. **Ask your history:** "when did I share my address?" → answered from Snowflake Cortex Search.
-
----
-
-## Design
-
-Sage `#EEF3EA` · Plum `#2E2440` · Coral `#E8637A` (Connie) · Gold `#D9A441` (settings) · Charcoal `#5C5568`.
-Fraunces for Connie's voice and headings, Inter for UI. Warm and trustworthy, like a smart friend, not an alarm system.
+All personal data in the samples is made up. The ID card is marked SPECIMEN.

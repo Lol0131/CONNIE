@@ -45,6 +45,7 @@ Response
 - `mood` *(added)*: `"cheerful" | "concerned" | "alarmed"`. Drives Connie's facial expression.
 - `category` *(added)*: `"government_id" | "financial" | "credentials" | "contact_info" | "personal_details" | "unreadable" | "none"`. `unreadable` means the backend couldn't extract the file, so Connie asks the user to check it rather than calling it safe.
 - `matches` *(added)*: human-readable list of what was found
+- `probabilities` *(added, only when Jev ran)*: Jev's yes-probability for each data category
 - `engine` *(added)*: which parts were live. `verdict`: `"jev" | "rules"`; `voice`: `"gemini" | "template"`; `extract`: `"client" | "pdf" | "docx" | "gemini-vision" | "text" | "filename-only"`. Handy for debugging and for being honest in the demo.
 
 Gemini can take 1–7 s, so callers should show a loading state.
