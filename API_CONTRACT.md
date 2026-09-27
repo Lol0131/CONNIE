@@ -110,14 +110,15 @@ Sources from vector search include a `score` (cosine similarity). Takes 1–5 s,
 
 Response
 ```json
-{ "dataSharing": "medium", "spending": "medium", "toolAssertiveness": "low" }
+{ "dataSharing": "medium", "spending": "medium", "toolAssertiveness": "low", "monthlyBudget": 60 }
 ```
+`monthlyBudget` *(added)*: the user's monthly AI budget in dollars, from 0 to 10000. It's stored in Snowflake when `snowflake/06_budget.sql` has been run; otherwise it's kept in memory.
 
 ## `POST /settings`
 
 Request: the same shape as the `GET` response. Partial updates are allowed, and missing keys keep their current value.
 
-Response: `{ "ok": true }`. Returns `400` if a value isn't `low`/`medium`/`high`.
+Response: `{ "ok": true }`. Returns `400` if a slider value isn't `low`/`medium`/`high`, or if `monthlyBudget` isn't a number from 0 to 10000.
 
 Both the extension and the web app read `/settings` before acting, so they always agree.
 

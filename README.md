@@ -73,7 +73,7 @@ All keys go in `backend/.env`, which is git-ignored. Edits take effect when the 
 - **Gemini:** [aistudio.google.com](https://aistudio.google.com) → Get API key → `GEMINI_API_KEY`.
 - **Jev:** TypeSafe AI key → `TYPESAFE_API_KEY`. API docs: [docs.typesafe.ai/api](https://docs.typesafe.ai/api).
 - **Snowflake:**
-  1. In a Snowsight worksheet, run `snowflake/01_schema.sql` → `02_seed.sql` → `03_vector.sql` → `04_access.sql`.
+  1. In a Snowsight worksheet, run `snowflake/01_schema.sql` → `02_seed.sql` → `03_vector.sql` → `04_access.sql`. If you set up before the budget existed, also run `06_budget.sql`.
   2. `04_access.sql` creates a narrow `CONNIE_APP` role and prints a programmatic access token **once**. Copy `token_secret` into `SNOWFLAKE_PAT`.
   3. Set `SNOWFLAKE_ACCOUNT` to your account identifier (the `myorg-myaccount` part of your Snowflake URL).
   4. The seed entries get their embeddings the first time someone asks a question.
@@ -100,7 +100,7 @@ All keys go in `backend/.env`, which is git-ignored. Edits take effect when the 
 2. **Remove file** → it never reaches the chat. *"She doesn't just warn you, she gives you control."*
 3. **id_card.png** → Gemini reads the photo, and Connie catches the license number.
 4. **lecture_notes.txt** on Medium → safe. Slide **Data sharing** to High in the popup → try again → she flags the name and school.
-5. Dashboard → pause a duplicate subscription, then ask the tool picker "summarize a 200-page PDF".
+5. Dashboard → set **My budget** (Connie tells you where you stand), pause a duplicate subscription, then ask the tool picker "summarize a 200-page PDF".
 6. **Ask your history:** "when did I share my address?" → Snowflake finds the matching entries by meaning, and Connie answers from your own log.
 
 ---
@@ -124,7 +124,7 @@ extension/
   popup.*              toolbar popup
   demo/                stand-in AI chat + sample files (all fake data)
 webapp/                dashboard
-snowflake/             01 schema · 02 seed · 03 vector column · 04 role + token · 05 Cortex (optional)
+snowflake/             01 schema · 02 seed · 03 vector column · 04 role + token · 05 Cortex (optional) · 06 budget column
 ```
 
 All personal data in the samples is made up. The ID card is marked SPECIMEN.

@@ -84,8 +84,15 @@ def load_settings() -> dict | None:
     if not rows:
         return None
     r = rows[0]
-    return {"dataSharing": r["data_sharing_sensitivity"], "spending": r["spending_strictness"],
-            "toolAssertiveness": r["tool_assertiveness"]}
+    out = {"dataSharing": r["data_sharing_sensitivity"], "spending": r["spending_strictness"],
+           "toolAssertiveness": r["tool_assertiveness"]}
+    try:  # separate so a missing budget column (older setups) can't block the sliders
+        b = sql("SELECT monthly_budget FROM USER_CONNIE_SETTINGS WHERE user_id = ?", USER_ID)
+        if b and b[0]["monthly_budget"] is not None:
+            out["monthlyBudget"] = float(b[0]["monthly_budget"])
+    except requests.HTTPError:
+        pass
+    return out
 
 
 def save_settings(s: dict) -> None:
@@ -96,6 +103,11 @@ def save_settings(s: dict) -> None:
            WHEN NOT MATCHED THEN INSERT (user_id, data_sharing_sensitivity, spending_strictness, tool_assertiveness)
                 VALUES (s.user_id, s.ds, s.sp, s.ta)""",
         USER_ID, s["dataSharing"], s["spending"], s["toolAssertiveness"])
+    try:
+        sql("UPDATE USER_CONNIE_SETTINGS SET monthly_budget = TO_NUMBER(?, 10, 2) WHERE user_id = ?",
+            str(s["monthlyBudget"]), USER_ID)
+    except requests.HTTPError:
+        pass  # budget column not added yet (see snowflake/06_budget.sql); kept in memory
 
 
 # --- Interactions -----------------------------------------------------------------

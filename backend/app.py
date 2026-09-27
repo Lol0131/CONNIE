@@ -31,7 +31,9 @@ app = Flask(__name__)
 CORS(app)
 
 # Settings are cached here and written through to Snowflake when it's configured.
-settings = {"dataSharing": "medium", "spending": "medium", "toolAssertiveness": "low"}
+settings = {"dataSharing": "medium", "spending": "medium", "toolAssertiveness": "low", "monthlyBudget": 60}
+SLIDERS = ("dataSharing", "spending", "toolAssertiveness")
+MAX_BUDGET = 10_000
 # Used only when Snowflake isn't configured (or is unreachable).
 history = list(SEED_HISTORY)
 
@@ -175,9 +177,14 @@ def get_settings():
 def post_settings():
     body = request.get_json(force=True) or {}
     updates = {k: v for k, v in body.items() if k in settings}
-    bad = [k for k, v in updates.items() if v not in LEVELS]
+    bad = [k for k, v in updates.items() if k in SLIDERS and v not in LEVELS]
     if bad:
         return jsonify(error=f"invalid level for: {', '.join(bad)}"), 400
+    if "monthlyBudget" in updates:
+        budget = updates["monthlyBudget"]
+        if isinstance(budget, bool) or not isinstance(budget, (int, float)) or not 0 <= budget <= MAX_BUDGET:
+            return jsonify(error=f"monthlyBudget must be a number from 0 to {MAX_BUDGET}"), 400
+        updates["monthlyBudget"] = round(float(budget), 2)
     settings.update(updates)
     if snow.enabled():
         try:

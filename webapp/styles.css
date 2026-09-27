@@ -61,7 +61,14 @@ button, input { font: inherit; }
 /* Spending */
 .budget-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
 #spendTotal { font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 600; }
-#spendBudget { color: var(--charcoal); align-self: end; }
+.budget-edit { color: var(--charcoal); align-self: end; display: inline-flex; align-items: center; gap: 2px; }
+.budget-edit input {
+  width: 76px; padding: 4px 6px; margin-left: 2px;
+  border: 1px solid var(--line); border-radius: 8px; background: #FAFCF9;
+  font: 600 15px Inter, sans-serif; color: var(--plum); text-align: right;
+}
+.budget-edit input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.budget-edit input.invalid { border-color: var(--coral); }
 .bar { height: 10px; background: var(--sage); border-radius: 999px; overflow: hidden; }
 .fill { height: 100%; background: var(--green); border-radius: 999px; transition: width .3s, background .3s; }
 .fill.over { background: var(--coral); }

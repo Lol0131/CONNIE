@@ -12,6 +12,7 @@ CREATE OR REPLACE TABLE USER_CONNIE_SETTINGS (
     data_sharing_sensitivity  STRING DEFAULT 'medium',
     spending_strictness       STRING DEFAULT 'medium',
     tool_assertiveness        STRING DEFAULT 'low',
+    monthly_budget            NUMBER(10, 2) DEFAULT 60,
     updated_at                TIMESTAMP_TZ DEFAULT CURRENT_TIMESTAMP()
 );
 

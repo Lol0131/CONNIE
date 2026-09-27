@@ -21,8 +21,9 @@ const EXPLAIN = {
   },
 };
 
-// Pillar 2 runs on mock data for the demo (see README: "real vs. fake").
-const BUDGET = 60;
+// Pillar 2's subscriptions are mock data for the demo; the budget is the user's own.
+const DEFAULT_BUDGET = 60;
+const budget = () => settings.monthlyBudget ?? DEFAULT_BUDGET;
 const subscriptions = [
   { name: "ChatGPT Plus", cost: 20, use: "writing", hoursThisMonth: 14 },
   { name: "Claude Pro", cost: 20, use: "writing", hoursThisMonth: 9 },
@@ -37,7 +38,7 @@ const training = [
   { tool: "Gemini", on: true },
 ];
 
-let settings = { dataSharing: "medium", spending: "medium", toolAssertiveness: "low" };
+let settings = { dataSharing: "medium", spending: "medium", toolAssertiveness: "low", monthlyBudget: DEFAULT_BUDGET };
 
 // --- helpers -----------------------------------------------------------------
 const $ = (sel) => document.querySelector(sel);
@@ -137,7 +138,7 @@ function spendingFindings() {
   const level = LEVELS.indexOf(settings.spending);
   const findings = [];
 
-  if (total > BUDGET) findings.push({ text: `You're $${total - BUDGET} over your $${BUDGET} monthly budget.` });
+  if (total > budget()) findings.push({ text: `You're ${money(total - budget())} over your ${money(budget())} monthly budget.` });
 
   const byUse = Object.groupBy(active, (s) => s.use);
   for (const [use, subs] of Object.entries(byUse)) {
@@ -162,10 +163,11 @@ function spendingFindings() {
 function renderSpending() {
   const { total, findings } = spendingFindings();
   $("#spendTotal").textContent = `$${total}/mo`;
-  $("#spendBudget").textContent = `Budget $${BUDGET}`;
+  const input = $("#budgetInput");
+  if (document.activeElement !== input) input.value = budget();
   const fill = $("#spendBar");
-  fill.style.width = Math.min(100, (total / BUDGET) * 100) + "%";
-  fill.classList.toggle("over", total > BUDGET);
+  fill.style.width = (budget() > 0 ? Math.min(100, (total / budget()) * 100) : 100) + "%";
+  fill.classList.toggle("over", total > budget());
 
   $("#subs").replaceChildren(
     ...subscriptions.map((s) =>
@@ -198,6 +200,50 @@ function renderSpending() {
       : [el("li", { className: "ok", textContent: "Nothing to flag at this strictness. Nice!" })]),
   );
 }
+
+const money = (n) => "$" + (Number.isInteger(n) ? n : n.toFixed(2));
+
+// The budget is the user's call: saved with their settings, and Connie reacts.
+function budgetReaction() {
+  const { total } = spendingFindings();
+  const b = budget();
+  if (total > b) {
+    return { mood: "concerned", message: `Got it, ${money(b)} a month. You're ${money(total - b)} over right now. Want to pause something below?` };
+  }
+  if (total >= b * 0.9) {
+    return { mood: "concerned", message: `Got it, ${money(b)} a month. You're at ${money(total)}, so right at the edge. I'll let you know if that changes.` };
+  }
+  return { mood: "cheerful", message: `Got it, ${money(b)} a month. You're at ${money(total)}, with ${money(b - total)} to spare. Nice!` };
+}
+
+$("#budgetInput").addEventListener("input", (e) => {
+  const v = Number(e.target.value);
+  const ok = e.target.value !== "" && v >= 0 && v <= 10000;
+  e.target.classList.toggle("invalid", !ok);
+  if (ok) {
+    settings.monthlyBudget = v;
+    renderSpending();
+  }
+});
+
+$("#budgetInput").addEventListener("change", async (e) => {
+  const v = Number(e.target.value);
+  if (e.target.value === "" || !(v >= 0 && v <= 10000)) {
+    e.target.value = budget();
+    e.target.classList.remove("invalid");
+    return say("Budgets need to be between $0 and $10,000. I kept your old one.", { mood: "concerned" });
+  }
+  try {
+    await api("/settings", "POST", { monthlyBudget: v });
+    setStatus(true);
+    say(budgetReaction().message, { mood: budgetReaction().mood });
+    log("spending", `Set monthly AI budget to ${money(v)}.`, "action");
+  } catch (err) {
+    console.warn(err);
+    setStatus(false);
+    say("I couldn't save your budget. Is my backend running?", { mood: "concerned" });
+  }
+});
 
 // --- Pillar 3: tool selection ------------------------------------------------
 async function recommend(task) {

@@ -56,7 +56,12 @@
       <section class="panel" id="spending">
         <h2>What am I spending?</h2>
         <div class="budget">
-          <div class="budget-row"><span id="spendTotal"></span><span id="spendBudget"></span></div>
+          <div class="budget-row">
+            <span id="spendTotal"></span>
+            <label class="budget-edit" for="budgetInput">
+              My budget $<input id="budgetInput" type="number" min="0" max="10000" step="5" inputmode="decimal">/mo
+            </label>
+          </div>
           <div class="bar"><div class="fill" id="spendBar"></div></div>
         </div>
         <ul class="subs" id="subs"></ul>
