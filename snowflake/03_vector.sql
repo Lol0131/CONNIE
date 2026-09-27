@@ -3,6 +3,7 @@
 -- SQL, not Cortex AI functions. The backend embeds text with Gemini and stores
 -- the vectors here; Snowflake does the similarity search.
 -- (Have AI features enabled? You can also run 05_cortex_optional.sql.)
+USE ROLE ACCOUNTADMIN;
 USE SCHEMA CONNIE.APP;
 USE WAREHOUSE CONNIE_WH;
 
