@@ -19,7 +19,7 @@ RULES = [
     ("phone number", "contact_info", r"(?:\+1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b", "medium"),
     ("street address", "contact_info",
      r"(?i)\b\d{1,5}\s+(?:[NSEW]\.?\s+)?\w+(?:\s\w+)?\s+(st|street|ave|avenue|rd|road|blvd|dr|drive|ln|lane|ct|court|way|terrace|ter|pl|place)\b", "medium"),
-    ("date of birth", "personal_details", r"(?i)\b(dob|date of birth|born)\b", "medium"),
+    ("date of birth", "contact_info", r"(?i)\b(dob|date of birth|born)\b", "medium"),
     ("ZIP code", "contact_info", r"\b\d{5}(?:-\d{4})?\b", "high"),
     ("full name", "personal_details", r"(?m)^\s*(?:name\s*[:\-]\s*)?[A-Z][a-z]+ (?:[A-Z]\. )?[A-Z][a-z]+\s*$", "high"),
     ("employer or school", "personal_details", r"(?i)\b(university|college|inc\.|llc|corp)\b", "high"),

@@ -12,13 +12,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, redirect, request, send_from_directory
-from flask_cors import CORS
 
-from connie import extract, gemini, jev, rules, snow
-from connie.seed import SEED_HISTORY
+# Before importing connie modules, which read settings at import time. override=True
+# so edits to .env win over stale values (e.g. an empty key the reloader inherited).
+load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
 
-load_dotenv()
+from flask import Flask, jsonify, redirect, request, send_from_directory  # noqa: E402
+from flask_cors import CORS  # noqa: E402
+
+from connie import extract, gemini, jev, rules, snow  # noqa: E402
+from connie.seed import SEED_HISTORY  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 LEVELS = {"low", "medium", "high"}
@@ -83,13 +86,15 @@ def check_content():
             text, extracted_by = f"Filename: {file_name}", "filename-only"
     verdict, verdict_engine = detect(text, sensitivity, file_name)
 
-    try:
-        advice = gemini.data_sharing_advice(verdict, sensitivity, file_name).model_dump()
-        voice = "gemini"
-    except Exception as e:
-        app.logger.warning("Gemini failed, using template: %s", e)
-        advice = rules.fallback_advice(verdict, sensitivity, file_name)
-        voice = "template"
+    # Connie holds the file while this runs, so safe files skip the Gemini round
+    # trip. Gemini's words are for when there's something to explain.
+    advice, voice = rules.fallback_advice(verdict, sensitivity, file_name), "template"
+    if verdict["choice"] == "flag":
+        try:
+            advice = gemini.data_sharing_advice(verdict, sensitivity, file_name).model_dump()
+            voice = "gemini"
+        except Exception as e:
+            app.logger.warning("Gemini failed, using template: %s", e)
 
     return jsonify(**verdict, **advice,
                    engine={"verdict": verdict_engine, "voice": voice, "extract": extracted_by})

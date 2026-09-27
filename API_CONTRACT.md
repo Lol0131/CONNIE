@@ -43,7 +43,7 @@ Response
 - `message`: Connie's plain-English advice, from Gemini structured output
 - `tip` *(added)*: one short, concrete next step
 - `mood` *(added)*: `"cheerful" | "concerned" | "alarmed"`. Drives Connie's facial expression.
-- `category` *(added)*: `"government_id" | "financial" | "credentials" | "contact_info" | "personal_details" | "none"`
+- `category` *(added)*: `"government_id" | "financial" | "credentials" | "contact_info" | "personal_details" | "unreadable" | "none"`. `unreadable` means the backend couldn't extract the file, so Connie asks the user to check it rather than calling it safe.
 - `matches` *(added)*: human-readable list of what was found
 - `engine` *(added)*: which parts were live. `verdict`: `"jev" | "rules"`; `voice`: `"gemini" | "template"`; `extract`: `"client" | "pdf" | "docx" | "gemini-vision" | "text" | "filename-only"`. Handy for debugging and for being honest in the demo.
 
