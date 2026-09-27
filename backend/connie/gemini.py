@@ -35,7 +35,7 @@ like a smart friend giving a heads-up, never like an alarm or a legal notice.
 Keep it short, plain English, no jargon, no emojis, no markdown."""
 
 
-def generate(prompt: str, schema: type[BaseModel], temperature: float) -> BaseModel:
+def generate(prompt, schema: type[BaseModel], temperature: float) -> BaseModel:
     """One structured-output call, retried once on the backup model."""
     config = types.GenerateContentConfig(
         system_instruction=CONNIE_PERSONA,
@@ -120,3 +120,16 @@ def explain_tool(task: str, pick: str) -> str:
 The best tool for it is {pick} ({TOOLS.get(pick, "")}).
 Explain in one friendly sentence why {pick} fits this task."""
     return generate(prompt, ToolReason, temperature=0.5).reason
+
+
+class ImageText(BaseModel):
+    text: str = Field(description="All readable text in the image, transcribed verbatim.")
+    description: str = Field(description="One sentence on what the image shows, e.g. 'a photo of a driver's license'.")
+
+
+def read_image(data: bytes, mime: str) -> str:
+    """Multimodal: transcribe an image so the detectors can check it like any file."""
+    prompt = ("Transcribe all readable text in this image exactly as written, "
+              "including numbers, names, and addresses. Then describe the image in one sentence.")
+    result = generate([types.Part.from_bytes(data=data, mime_type=mime), prompt], ImageText, temperature=0)
+    return f"Image shows: {result.description}\n\n{result.text}"

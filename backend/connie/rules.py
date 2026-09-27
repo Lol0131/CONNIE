@@ -9,6 +9,8 @@ import re
 # (label, category, regex, minimum sensitivity that flags it)
 RULES = [
     ("Social Security number", "government_id", r"\b\d{3}-\d{2}-\d{4}\b", "low"),
+    ("driver's license or passport number", "government_id",
+     r"(?i)\b(dl|driver'?s? licen[cs]e|licen[cs]e|passport)\s*(no\.?|number|#)\s*[:#]?\s*[A-Z0-9][A-Z0-9-]{5,}", "low"),
     ("credit card number", "financial", r"\b(?:\d{4}[ -]?){3}\d{4}\b", "low"),
     ("password or API key", "credentials",
      r"(?i)(password|passwd|api[_ -]?key|secret|token)\s*[:=]\s*\S+|\bsk-[A-Za-z0-9-]{12,}", "low"),

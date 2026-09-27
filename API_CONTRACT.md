@@ -19,6 +19,12 @@ Request
 ```
 `fileName` *(added)*: optional, used in Connie's message and the log.
 
+For PDFs, Word docs, and images, send the raw file instead of `text` *(added)*:
+```json
+{ "fileBase64": "JVBERi0xLjQK...", "fileName": "resume.pdf", "mimeType": "application/pdf", "sensitivity": "medium" }
+```
+The backend extracts text itself: PDF and DOCX locally, images via Gemini multimodal. Max 10 MB.
+
 Response
 ```json
 {
@@ -29,7 +35,7 @@ Response
   "mood": "concerned",
   "category": "contact_info",
   "matches": ["street address", "phone number"],
-  "engine": { "verdict": "rules", "voice": "gemini" }
+  "engine": { "verdict": "rules", "voice": "gemini", "extract": "pdf" }
 }
 ```
 - `choice`: `"flag" | "safe"`
@@ -39,7 +45,7 @@ Response
 - `mood` *(added)*: `"cheerful" | "concerned" | "alarmed"`. Drives Connie's facial expression.
 - `category` *(added)*: `"government_id" | "financial" | "credentials" | "contact_info" | "personal_details" | "none"`
 - `matches` *(added)*: human-readable list of what was found
-- `engine` *(added)*: which parts were live. `verdict`: `"jev" | "rules"`; `voice`: `"gemini" | "template"`. Handy for debugging and for being honest in the demo.
+- `engine` *(added)*: which parts were live. `verdict`: `"jev" | "rules"`; `voice`: `"gemini" | "template"`; `extract`: `"client" | "pdf" | "docx" | "gemini-vision" | "text" | "filename-only"`. Handy for debugging and for being honest in the demo.
 
 Gemini can take 1–7 s, so callers should show a loading state.
 

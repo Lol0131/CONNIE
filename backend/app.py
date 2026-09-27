@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, request, send_from_directory
 from flask_cors import CORS
 
-from connie import gemini, jev, rules, snow
+from connie import extract, gemini, jev, rules, snow
 from connie.seed import SEED_HISTORY
 
 load_dotenv()
@@ -74,6 +74,13 @@ def check_content():
         return jsonify(error="sensitivity must be low, medium, or high"), 400
 
     file_name = body.get("fileName")
+    extracted_by = "client"
+    if body.get("fileBase64"):
+        try:
+            text, extracted_by = extract.extract(body["fileBase64"], file_name, body.get("mimeType", ""))
+        except Exception as e:
+            app.logger.warning("Couldn't extract %s: %s", file_name, e)
+            text, extracted_by = f"Filename: {file_name}", "filename-only"
     verdict, verdict_engine = detect(text, sensitivity, file_name)
 
     try:
@@ -84,7 +91,8 @@ def check_content():
         advice = rules.fallback_advice(verdict, sensitivity, file_name)
         voice = "template"
 
-    return jsonify(**verdict, **advice, engine={"verdict": verdict_engine, "voice": voice})
+    return jsonify(**verdict, **advice,
+                   engine={"verdict": verdict_engine, "voice": voice, "extract": extracted_by})
 
 
 @app.post("/log")
